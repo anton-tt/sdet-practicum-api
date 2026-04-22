@@ -4,5 +4,10 @@ cmd/__debug_bin
 .vscode/
 *.iml
 
-.DS_Store
-Thumbs.db
+target/
+
+allure-results/
+target/allure-results/
+
+*.class
+src/test/java/drafts/
