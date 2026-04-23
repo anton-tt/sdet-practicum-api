@@ -9,6 +9,7 @@ import models.EntityRequest;
 import models.EntityResponse;
 import org.junit.jupiter.api.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
@@ -55,7 +56,7 @@ public class EntityApiTest extends BaseTest {
 
     @Order(2)
     @Test
-    @DisplayName("GET: получение сущности")
+    @DisplayName("GET: получение сущности по id")
     void getEntityTest() {
         Response response = Allure.step("Отправка GET /api/get/{id}", () ->
                 given()
@@ -80,10 +81,34 @@ public class EntityApiTest extends BaseTest {
             assertEquals("Дополнительные сведения 1", actual.getAddition().getAdditional_info());
             assertEquals(123, actual.getAddition().getAdditional_number());
         });
-
     }
 
     @Order(3)
+    @Test
+    @DisplayName("GET: получение всех сущностей")
+    void getAllEntityTest() {
+        Response response = Allure.step("Отправка GET /api/getAll", () ->
+                given()//.log().all()
+                        .queryParam("page", 1)
+                        .queryParam("perPage", 25)
+                .when()
+                        .get("/api/getAll")
+                .then()
+                        .statusCode(200)
+                        .extract()
+                        .response()
+        );
+        EntityResponse[] entities = response.jsonPath().getObject("entity", EntityResponse[].class);
+
+        Allure.step("Проверка списка сущностей", () -> {
+            assertNotNull(entities);
+            assertTrue(entities.length > 0);
+            boolean found = Arrays.stream(entities).anyMatch(e -> e.getId().equals(entityId));
+            assertTrue(found);
+        });
+    }
+
+    @Order(4)
     @Test
     @DisplayName("PATCH: обновление сущности")
     void patchEntityTest() {
@@ -98,7 +123,7 @@ public class EntityApiTest extends BaseTest {
                 .build();
 
         Allure.step("Отправка PATCH запроса /api/patch/{id}", () ->
-                given().log().all()
+                given()
                         .contentType("application/json")
                         .body(request)
                 .when()
