@@ -34,7 +34,7 @@ public class EntityApiTest extends BaseTest {
                         .build())
                 .build();
 
-        Response response = Allure.step("Отправка POST запроса", () ->
+        Response response = Allure.step("Отправка POST api/create", () ->
                 given()
                         .contentType("application/json")
                         .body(request)
@@ -55,6 +55,36 @@ public class EntityApiTest extends BaseTest {
 
     @Order(2)
     @Test
+    @DisplayName("GET: получение сущности")
+    void getEntityTest() {
+        Response response = Allure.step("Отправка GET /api/get/{id}", () ->
+                given()
+                .when()
+                        .get("/api/get/" + entityId)
+                .then()
+                        .statusCode(200)
+                        .extract()
+                        .response()
+        );
+        EntityResponse actual = response.as(EntityResponse.class);
+
+        Allure.step("Проверка полученной сущности", () -> {
+            assertEquals(entityId, actual.getId());
+            assertEquals("Заголовок сущности 1", actual.getTitle());
+            assertTrue(actual.getVerified());
+
+            assertNotNull(actual.getImportant_numbers());
+            assertFalse(actual.getImportant_numbers().isEmpty());
+
+            assertNotNull(actual.getAddition());
+            assertEquals("Дополнительные сведения 1", actual.getAddition().getAdditional_info());
+            assertEquals(123, actual.getAddition().getAdditional_number());
+        });
+
+    }
+
+    @Order(3)
+    @Test
     @DisplayName("PATCH: обновление сущности")
     void patchEntityTest() {
         EntityRequest request = EntityRequest.builder()
@@ -67,7 +97,7 @@ public class EntityApiTest extends BaseTest {
                         .build())
                 .build();
 
-        Allure.step("Отправка PATCH запроса", () ->
+        Allure.step("Отправка PATCH запроса /api/patch/{id}", () ->
                 given().log().all()
                         .contentType("application/json")
                         .body(request)
