@@ -122,7 +122,7 @@ public class EntityApiTest extends BaseTest {
                         .build())
                 .build();
 
-        Allure.step("Отправка PATCH запроса /api/patch/{id}", () ->
+        Allure.step("Отправка PATCH /api/patch/{id}", () ->
                 given()
                         .contentType("application/json")
                         .body(request)
@@ -147,6 +147,19 @@ public class EntityApiTest extends BaseTest {
             assertEquals("Заголовок сущности 2", actual.getTitle());
             assertEquals(false, actual.getVerified());
         });
+    }
+
+    @Order(5)
+    @Test
+    @DisplayName("DELETE: удаление сущности")
+    void deleteEntityTest() {
+        Allure.step("Отправка DELETE /api/delete/{id}", () ->
+                given()
+                .when()
+                        .delete("/api/delete/" + entityId)
+                .then()
+                        .statusCode(204)
+        );
     }
 
 }
