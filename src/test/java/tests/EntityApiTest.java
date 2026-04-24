@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 
 import static config.ApiRoutes.*;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Epic("API тесты")
@@ -98,7 +100,7 @@ public class EntityApiTest extends BaseTest {
                         .additional_number(123)
                         .build())
                 .build();
-        Integer firstRequestId = Allure.step("Отправка POST " + CREATE, () ->
+        Integer firstRequestId = Allure.step("Подготовка данных через POST", () ->
                 createEntity(firstRequest)
         );
 
@@ -111,11 +113,11 @@ public class EntityApiTest extends BaseTest {
                         .additional_number(321)
                         .build())
                 .build();
-        Integer secondRequestId = Allure.step("Отправка POST " + CREATE, () ->
+        Integer secondRequestId = Allure.step("Подготовка данных через POST", () ->
                 createEntity(secondRequest)
         );
 
-        Response  response = Allure.step("Отправка GET " + GET_ALL, () ->
+        Response response = Allure.step("Отправка GET " + GET_ALL, () ->
                 given()
                         .queryParam("page", 1)
                         .queryParam("perPage", 100)
@@ -139,57 +141,84 @@ public class EntityApiTest extends BaseTest {
         });
     }
 
-    @Order(4)
     @Test
     @DisplayName("PATCH: обновление сущности")
     void patchEntityTest() {
-        EntityRequest request = EntityRequest.builder()
-                .title("Заголовок сущности 2")
-                .verified(false)
-                .important_numbers(List.of(15, 42, 87))
+        EntityRequest createRequest = EntityRequest.builder()
+                .title("Заголовок сущности 1")
+                .verified(true)
+                .important_numbers(List.of(42, 87, 15))
                 .addition(AdditionRequest.builder()
-                        .additional_info("Дополнительные сведения 2")
-                        .additional_number(321)
+                        .additional_info("Дополнительные сведения 1")
+                        .additional_number(123)
+                        .build())
+                .build();
+        Integer entityId = Allure.step("Подготовка данных через POST", () ->
+                createEntity(createRequest)
+        );
+
+        EntityRequest patchRequest = EntityRequest.builder()
+                .title("Заголовок сущности 2")
+                .verified(true)
+                .important_numbers(List.of(42, 87, 15))
+                .addition(AdditionRequest.builder()
+                        .additional_info("Дополнительные сведения 1")
+                        .additional_number(123)
                         .build())
                 .build();
 
-        Allure.step("Отправка PATCH /api/patch/{id}", () ->
+        Allure.step("Отправка PATCH " + PATCH + entityId, () ->
                 given()
                         .contentType("application/json")
-                        .body(request)
-                .when()
-                        .patch("/api/patch/" + entityId)
-                .then()
+                        .body(patchRequest)
+                        .when()
+                        .patch(PATCH + entityId)
+                        .then()
                         .statusCode(204)
         );
-
-        Response response = Allure.step("GET запрос на получение обновлённой сущности", () ->
-                given()
-                .when()
-                        .get("/api/get/" + entityId)
-                .then()
-                        .statusCode(200)
-                        .extract()
-                        .response()
+        EntityResponse updatedData = Allure.step("Получение обновлённой сущности", () ->
+                getEntity(entityId)
         );
-        EntityResponse actual = response.as(EntityResponse.class);
 
-        Allure.step("Проверка обновлённых данных", () -> {
-            assertEquals("Заголовок сущности 2", actual.getTitle());
-            assertEquals(false, actual.getVerified());
+        Allure.step("Проверка обновления данных", () -> {
+            assertEquals(patchRequest.getTitle(), updatedData.getTitle());
+            assertEquals(patchRequest.getVerified(), updatedData.getVerified());
+            assertEquals(patchRequest.getImportant_numbers(), updatedData.getImportant_numbers());
+            assertEquals(patchRequest.getAddition().getAdditional_info(), updatedData.getAddition().getAdditional_info());
+            assertEquals(patchRequest.getAddition().getAdditional_number(), updatedData.getAddition().getAdditional_number());
         });
     }
 
-    @Order(5)
     @Test
     @DisplayName("DELETE: удаление сущности")
     void deleteEntityTest() {
-        Allure.step("Отправка DELETE /api/delete/{id}", () ->
+        EntityRequest createRequest = EntityRequest.builder()
+                .title("Заголовок сущности 1")
+                .verified(true)
+                .important_numbers(List.of(42, 87, 15))
+                .addition(AdditionRequest.builder()
+                        .additional_info("Дополнительные сведения 1")
+                        .additional_number(123)
+                        .build())
+                .build();
+        Integer entityId = Allure.step("Подготовка данных через POST", () ->
+                createEntity(createRequest)
+        );
+
+        Allure.step("Отправка DELETE " + DELETE + entityId, () ->
                 given()
-                .when()
-                        .delete("/api/delete/" + entityId)
-                .then()
+                        .when()
+                        .delete(DELETE + entityId)
+                        .then()
                         .statusCode(204)
+        );
+
+        Allure.step("Проверка, что сущность удалена", () ->
+                given()
+                        .when()
+                        .get(GET + entityId)
+                        .then()
+                        .statusCode(anyOf(is(400), is(404), is(500)))
         );
     }
 

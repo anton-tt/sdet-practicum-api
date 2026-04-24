@@ -44,12 +44,4 @@ public class BaseTest {
                 .as(EntityResponse.class);
     }
 
-    protected void deleteEntity(Integer id) {
-        given()
-                .when()
-                .delete(DELETE + id)
-                .then()
-                .statusCode(204);
-    }
-
 }
