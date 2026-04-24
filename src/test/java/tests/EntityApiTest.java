@@ -9,9 +9,12 @@ import models.EntityRequest;
 import models.EntityResponse;
 import org.junit.jupiter.api.*;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import static config.ApiRoutes.CREATE;
+import static config.ApiRoutes.*;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -53,46 +56,72 @@ public class EntityApiTest extends BaseTest {
         });
     }
 
-    @Order(2)
     @Test
     @DisplayName("GET: получение сущности по id")
     void getEntityTest() {
-        EntityResponse response = Allure.step("Отправка GET /api/get/{id}", () ->
-                given()
-                .when()
-                        .get("/api/get/" + entityId)
-                .then()
-                        .statusCode(200)
-                        .extract()
-                        .as(EntityResponse.class)
+        EntityRequest request = EntityRequest.builder()
+                .title("Заголовок сущности 1")
+                .verified(true)
+                .important_numbers(List.of(42, 87, 15))
+                .addition(AdditionRequest.builder()
+                        .additional_info("Дополнительные сведения 1")
+                        .additional_number(123)
+                        .build())
+                .build();
+        Integer entityId = Allure.step("Подготовка данных через POST", () ->
+                createEntity(request)
         );
-        assertEquals(entityId, response.getId());
 
+        EntityResponse response = Allure.step("Отправка GET " + GET + entityId, () ->
+                getEntity(entityId)
+        );
         Allure.step("Проверка полученной сущности", () -> {
             assertEquals(entityId, response.getId());
-            assertEquals("Заголовок сущности 1", response.getTitle());
-            assertTrue(response.getVerified());
-
-            assertNotNull(response.getImportant_numbers());
-            assertFalse(response.getImportant_numbers().isEmpty());
-
-            assertNotNull(response.getAddition());
-            assertEquals("Дополнительные сведения 1", response.getAddition().getAdditional_info());
-            assertEquals(123, response.getAddition().getAdditional_number());
+            assertEquals(request.getTitle(), response.getTitle());
+            assertEquals(request.getVerified(), response.getVerified());
+            assertEquals(request.getImportant_numbers(), response.getImportant_numbers());
+            assertEquals(request.getAddition().getAdditional_info(), response.getAddition().getAdditional_info());
+            assertEquals(request.getAddition().getAdditional_number(), response.getAddition().getAdditional_number());
         });
+
     }
 
-    @Order(3)
     @Test
     @DisplayName("GET: получение всех сущностей")
     void getAllEntityTest() {
-        Response response = Allure.step("Отправка GET /api/getAll", () ->
-                given()//.log().all()
+        EntityRequest firstRequest = EntityRequest.builder()
+                .title("Заголовок сущности 1")
+                .verified(true)
+                .important_numbers(List.of(42, 87, 15))
+                .addition(AdditionRequest.builder()
+                        .additional_info("Дополнительные сведения 1")
+                        .additional_number(123)
+                        .build())
+                .build();
+        Integer firstRequestId = Allure.step("Отправка POST " + CREATE, () ->
+                createEntity(firstRequest)
+        );
+
+        EntityRequest secondRequest = EntityRequest.builder()
+                .title("Заголовок сущности 2")
+                .verified(false)
+                .important_numbers(List.of(15, 42, 87))
+                .addition(AdditionRequest.builder()
+                        .additional_info("Дополнительные сведения 2")
+                        .additional_number(321)
+                        .build())
+                .build();
+        Integer secondRequestId = Allure.step("Отправка POST " + CREATE, () ->
+                createEntity(secondRequest)
+        );
+
+        Response  response = Allure.step("Отправка GET " + GET_ALL, () ->
+                given()
                         .queryParam("page", 1)
-                        .queryParam("perPage", 25)
-                .when()
-                        .get("/api/getAll")
-                .then()
+                        .queryParam("perPage", 100)
+                        .when()
+                        .get(GET_ALL)
+                        .then()
                         .statusCode(200)
                         .extract()
                         .response()
@@ -101,9 +130,12 @@ public class EntityApiTest extends BaseTest {
 
         Allure.step("Проверка списка сущностей", () -> {
             assertNotNull(entities);
-            assertTrue(entities.length > 0);
-            //boolean found = Arrays.stream(entities).anyMatch(e -> e.getId().equals(entityId));
-            //assertTrue(found);
+            assertTrue(entities.length >= 2);
+            Set<Integer> actualIds = Arrays.stream(entities)
+                    .map(EntityResponse::getId)
+                    .collect(Collectors.toSet());
+            assertTrue(actualIds.contains(firstRequestId));
+            assertTrue(actualIds.contains(secondRequestId));
         });
     }
 
