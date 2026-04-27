@@ -23,7 +23,19 @@
 - Получение сущности: GET /api/get/{id}
 - Получение всех сущностей: GET /api/getAll
 - Обновление сущности: PATCH /api/patch/{id}
-  
-  
+
 #### HOST http://localhost:8080
 #### SWAGGER документация http://localhost:8080/api/_/docs/swagger/
+
+## Тест-кейсы:
+`/docs/test-cases.md`
+
+## Запуск тестов
+1. Собрать проект и выполнить тесты Maven:
+```bash
+mvn clean test
+```
+2. Сформировать отчет Allure
+```bash
+allure serve target/allure-results
+```
